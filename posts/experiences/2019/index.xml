@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>experiences-2019 on Jian Liu</title>
+    <link>https://jianliu666.github.io/posts/experiences/2019/</link>
+    <description>Recent content in experiences-2019 on Jian Liu</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 26 Jan 2020 00:00:00 +0800</lastBuildDate><atom:link href="https://jianliu666.github.io/posts/experiences/2019/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>棋牌遊戲開發| PVE伺服器篇</title>
+      <link>https://jianliu666.github.io/posts/experiences/2019/game-platform-pacer/</link>
+      <pubDate>Sun, 26 Jan 2020 00:00:00 +0800</pubDate>
+      
+      <guid>https://jianliu666.github.io/posts/experiences/2019/game-platform-pacer/</guid>
+      <description>前言 在系列文的第二篇 棋牌遊戲開發| 遊戲伺服器篇 中我們談完了遊戲伺服器的系統架構，本篇要進一步探討其中的 PVE 部分。
+由於每間公司在業務邏輯上有各自不同的決策，因此本篇重點將會著重在模組的設計，較少提及其延伸應用。
+ PVE 伺服器系統架構圖 PVE 伺服器的佈署環境與前篇的遊戲伺服器相同，因此在這邊就不再多加贅述。
+常駐服務  當系統發生未知異常導致崩潰後，藉由 Linux Supervisor 我們能在最短時間內重啟並從 Redis 中載入歷史快照紀錄還原崩潰之前的狀態，大幅降低對客戶端造成的影響。 監控所有已建立的 Bot 執行緒，透過定期心跳檢測確認當前的活躍狀況與發生未知異常時的處理機制。  核心單元業務  與其他服務傳輸時的資料正規化。 維護所有 已存在與準備建立/銷毀 的牌桌區塊。 維護所有 已存在與準備建立/銷毀 的 Bot 執行緒。  網路單元業務  維護與其他在 Consul 上已註冊服務溝通時的擴充功能。 維護與 Redis 溝通時的擴充功能。  邏輯單元業務  根據每款遊戲不同的遊戲規則有不同的處理機制。 負責模擬不同玩家心態所量化成的遊戲策略方式。 負責處理當遊戲複雜度高於一定難度時能夠快速解析當前局勢的演算法。   跨服務溝通介紹  不同服務 (即遊戲伺服器與 PVE 伺服器) 之間透過 NATS 進行溝通。 每款遊戲在 Packet Office 內表示為一個獨立的遊戲單元。 遊戲單元與 Bot 之間透過 Channel 共享資料。 接收封包時，遊戲單元與 Bot 對應關係為一對一，即每次收到的封包只會放進指定的 Bot Channel 內。 發送封包時，遊戲單元與 Bot 對應關係為一對多，即相同牌桌內的 Bot Channel 是互相共享的，用以減輕遊戲單元在封裝封包時的複雜度。  簡單來說，我們可以把 Packet Office 想成郵局，每個遊戲單元都是郵局內的其中一個窗口，當有民眾進入 (收到封包) 時，會在門口先抽取號碼牌後，等待系統引導到指定的窗口辦理業務。窗口負責人在收到業務後，會根據上面的備註進行分類，從而將包裹轉交到指定的目的地 (Bot 執行緒)。</description>
+    </item>
+    
+    <item>
+      <title>棋牌遊戲開發| 遊戲伺服器篇</title>
+      <link>https://jianliu666.github.io/posts/experiences/2019/game-platform-backend/</link>
+      <pubDate>Sat, 25 Jan 2020 00:00:00 +0800</pubDate>
+      
+      <guid>https://jianliu666.github.io/posts/experiences/2019/game-platform-backend/</guid>
+      <description>前言 在系列文的第一篇 棋牌遊戲開發| 前端篇 中我們完整介紹了個遊戲前端的技術框架，接下來就要開始進入到後端的範疇了。
+由於遊戲後端涵蓋許多服務，包含玩家匹配、遊戲邏輯、PVE 系統等。本篇會先盡可能地將所有的服務都逐一提過，後續在針對其中的某些項目做進一步的介紹。
+另外，遊戲伺服器的僅負責所有與遊戲流程相關的業務需求；換句話說，玩家在牌桌結束後產生的對應需求 (e.g. 籌碼流動、點數轉移等)，均不在此處理。
+ 遊戲後端技術框架結構圖 資料庫選擇  MySQL：所有需要被永久保存的資料會在條件觸發後才進行寫入 (e.g. 牌局結算後)，減少在操作上的交換時間。 Redis：儲存需要在所有內部結點上共享的資料 (e.g. 玩家、牌局資料等)，以及需要 Real-time 支持的業務需求 (e.g. 正在進行遊戲中的牌局)。  通訊方式選擇  TCP：與外部服務 (e.g. Consul、NATS、API等) 採用短連接方式進行資料交換。 WebSocket/MQTT：透過 WebSocket 與遊戲前端建立連線後使用 MQTT 作為通訊格式。 RPC：內部結點 (e.g. GameServer、PacerServer、Gateway) 溝通時的通訊方式。  核心單元說明  遊戲邏輯模組：能夠支援多種類型的通用遊戲開發模組 (e.g. 對弈/即時多人策略等類型)，且能因應遊戲規則細節進行擴充。 機器人模組：適用於多種場合的 PVE 模組。 牌桌模組：替客戶端提供幀同步與牌局主持的狀態機模組。 玩家模組：將客戶端資料封裝成能夠因應不同遊戲任意擴充的彈性模組。   遊戲伺服器系統架構圖 整個後端系統主要分為三大區塊，每個區塊都能夠視業務需要導入自動擴容，實現負載平衡、熱更新等功能。
+ Gateway：用於與客戶端建立長連接、心跳檢測與配發牌桌等功能。採用 WebSocket 與客戶端建立連線、透過 MQTT 通訊格式發送/接收訊息。 Game Server：建立牌桌模組提供給玩家加入，對已存在的牌桌管理生命週期。 Pacer Server：依牌桌需求建立機器人。  每個區塊內的服務在啟動後會向 Consul 進行註冊，相同區塊內的服務透過 Redis 同步資料，不同區塊之間使用 NATS 進行遠端調用與傳遞資料。</description>
+    </item>
+    
+    <item>
+      <title>棋牌遊戲開發| 前端篇</title>
+      <link>https://jianliu666.github.io/posts/experiences/2019/game-platform-frontend/</link>
+      <pubDate>Fri, 24 Jan 2020 00:00:00 +0800</pubDate>
+      
+      <guid>https://jianliu666.github.io/posts/experiences/2019/game-platform-frontend/</guid>
+      <description> 前言 本篇為棋牌遊戲開發系列文的第一篇，主要是想把自己經手一年從零到有的專案重點記錄下來，也藉此機會讓自己重新審視過整個專案的架構。
+這個系列主要會先以前後端兩篇來簡述整個棋牌專案的架構，接著再以獨立的篇幅逐步介紹其中細節，例如 PVE 系統、高併發處理或是數據追蹤等功能實現的重點紀錄。
+ 遊戲前端技術框架結構圖 通訊方式選擇  HttpRequest：大部分與外部服務 (e.g. 會員系統) 溝通時採用的傳輸協定。 WebSocket/MQTT：透過 WebSocket 與後端伺服器建立連線後使用 MQTT 作為通訊格式。  音訊模組  AudioSource：包含背景音樂、音效等。 GameVoice：包含多人群聊、錄製發話等。  動畫模組  Base Action：給定一系列運動軌跡組合而成的單次動畫演示 (e.g. 洗牌、派牌等)。 Schedule Action：泛指有固定頻率與運動軌跡的動畫演示 (e.g. 輪播牆、跑馬燈等)。 Spine/DragonBones：載入利用第三方工具實現的動畫演示 (e.g. 圖示特效)。  操作模組  智能拖曳：協助玩家在透過單指觸控實現拖曳需求時的智能篩選 (e.g. 依當前情境從手牌中篩選有利出牌組合)。 碰撞回饋：概括所有在玩家操作/視覺上造成影響流暢度的部分 (e.g. 按鈕點擊回饋、滑動經過物件時的回饋等)。   遊戲前端系統架構圖 如圖所示，整個前端架構主要是由一個遊戲大廳 (Game Lobby) 與旗下遊戲 (e.g. Dice、Poker等) 所組成，我們提供客戶自主選擇要串接的渠道，例如遊戲大廳或是直接訪問遊戲。
+圖中每個圖示代表一個獨立專案，如此一來當A遊戲未來在實現版本升級時，其餘遊戲不會連帶受到影響。
+ 遊戲前端遊工作流程 該圖為遊戲前端在進行一局遊戲時的時序圖，內容著重在建立牌局時的渲染步驟以及與後端溝通的過程。
+ 當畫面載入時會先將必要檔案優先處理，後續批次動態載入其餘資源，盡量降低玩家在網路速度較差時的等待時間。  </description>
+    </item>
+    
+  </channel>
+</rss>

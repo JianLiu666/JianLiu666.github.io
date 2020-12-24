@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>棋牌遊戲開發| PVE伺服器篇</title>
+    <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+
+<link rel="stylesheet" href="/assets/css/bootstrap.min.css"/>
+<link rel="stylesheet" href="/assets/css/layouts/main.css"/>
+<link rel="stylesheet" href="/assets/css/style.css"/>
+<link rel="stylesheet" href="/assets/css/navigators/navbar.css"/>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Muli:wght@300;400;500;600" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" />
+
+
+<link rel="icon" type="image/png" href="/assets/images/favicon.png" />
+
+
+<link rel="stylesheet" href="/assets/css/style.css"/>
+
+    
+<meta name="description" content="本篇內容為棋牌類型為主的網頁遊戲 PVE 伺服器架構心得筆記，涉及遊戲單元、狀態機與機器人等。" />
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css"
+/>
+<link rel="stylesheet" href="/assets/css/layouts/single.css"/>
+<link rel="stylesheet" href="/assets/css/navigators/sidebar.css">
+
+
+    
+    
+  </head>
+
+  <body data-spy="scroll" data-target="#TableOfContents" data-offset="80">
+    <div class="container-fluid bg-dimmed wrapper">
+      
+      
+    
+
+
+
+
+<nav class="navbar navbar-expand-xl top-navbar final-navbar shadow">
+  <div class="container">
+      <button class="navbar-toggler navbar-light" id="sidebar-toggler" type="button" onclick="toggleSidebar()">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <a class="navbar-brand" href="/">
+      <img src="/assets/images/main-logo.png">Jian Liu</a>
+    <button class="navbar-toggler navbar-light" id="toc-toggler" type="button" onclick="toggleTOC()">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse lang-selector" id="top-nav-items">
+      <ul class="navbar-nav ml-auto">
+      
+      </ul>
+    </div>
+  </div>
+  
+  <img src="/assets/images/main-logo.png" class="d-none" id="main-logo">
+  <img src="/assets/images/inverted-logo.png" class="d-none" id="inverted-logo">
+</nav>
+
+
+
+      
+      
+  <section class="sidebar-section" id="sidebar-section">
+    <div class="sidebar-holder">
+      <div class="sidebar" id="sidebar">
+        <input type="text" value="" placeholder="Search" data-search="" id="search-box" />
+        <div class="sidebar-tree">
+          <ul class="tree" id="tree">
+            <li id="list-heading"><a href="/posts" data-filter="all">Posts</a></li>
+            <div class="subtree">
+                
+  
+  
+  
+  
+    
+    
+  
+  
+    
+    <li>
+      <i class="fas fa-minus-circle"></i><a class="active" href="/posts/experiences/">Experiences</a>
+      
+      <ul class="active">
+        
+  
+  
+  
+  
+  
+    
+    <li>
+      <i class="fas fa-plus-circle"></i><a class="" href="/posts/experiences/2018/">2018</a>
+      
+      <ul class="">
+        
+  
+  
+  
+  
+  
+    
+    <li><a class="" href="/posts/experiences/2018/wooseven/">wooSeven 專案工作室</a></li>
+  
+
+
+      </ul>
+    </li>
+  
+
+  
+  
+  
+  
+    
+    
+  
+  
+    
+    <li>
+      <i class="fas fa-minus-circle"></i><a class="active" href="/posts/experiences/2019/">2019</a>
+      
+      <ul class="active">
+        
+  
+  
+  
+  
+  
+    
+    <li><a class="" href="/posts/experiences/2019/game-platform-frontend/">棋牌遊戲開發| 前端篇</a></li>
+  
+
+  
+  
+  
+  
+  
+    
+    <li><a class="" href="/posts/experiences/2019/game-platform-backend/">棋牌遊戲開發| 遊戲伺服器篇</a></li>
+  
+
+  
+  
+  
+  
+    
+    
+  
+  
+    
+    <li><a class="active" href="/posts/experiences/2019/game-platform-pacer/">棋牌遊戲開發| PVE伺服器篇</a></li>
+  
+
+
+      </ul>
+    </li>
+  
+
+
+      </ul>
+    </li>
+  
+
+
+            </div>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+      
+      
+<section class="content-section" id="content-section">
+  <div class="content">
+    <div class="container p-0 read-area">
+      
+      <div class="hero-area col-sm-12" id="hero-area" style='background-image: url(https://jianliu666.github.io/posts/experiences/2019/game-platform-pacer/image/banner.jpeg);'>
+      </div>
+
+      
+      <div class="page-content">
+        <div class="author-profile ml-auto align-self-lg-center">
+          <img class="rounded-circle" src='/images/author/jian.jpeg'/>
+          <h5 class="author-name">Jian Liu</h5>
+          <p>January 26, 2020</p>
+        </div>
+
+        <div class="title">
+          <h1>棋牌遊戲開發| PVE伺服器篇</h1>
+        </div>
+
+        <div class="post-content" id="post-content">
+          <hr>
+<h3 id="前言">前言</h3>
+<p>在系列文的第二篇 <a href="./../game-platform-backend/">棋牌遊戲開發| 遊戲伺服器篇</a> 中我們談完了遊戲伺服器的系統架構，本篇要進一步探討其中的 PVE 部分。</p>
+<p>由於每間公司在業務邏輯上有各自不同的決策，因此本篇重點將會著重在模組的設計，較少提及其延伸應用。</p>
+<hr>
+<h3 id="pve-伺服器系統架構圖">PVE 伺服器系統架構圖</h3>
+<img src="/posts/experiences/2019/game-platform-pacer/image/mindmap.svg"
+    
+    
+    
+    
+    
+        class="center"
+    
+>
+
+<p>PVE 伺服器的佈署環境與前篇的遊戲伺服器相同，因此在這邊就不再多加贅述。</p>
+<h4 id="常駐服務">常駐服務</h4>
+<ul>
+<li>當系統發生未知異常導致崩潰後，藉由 Linux Supervisor 我們能在最短時間內重啟並從 Redis 中載入歷史快照紀錄還原崩潰之前的狀態，大幅降低對客戶端造成的影響。</li>
+<li>監控所有已建立的 Bot 執行緒，透過定期心跳檢測確認當前的活躍狀況與發生未知異常時的處理機制。</li>
+</ul>
+<h4 id="核心單元業務">核心單元業務</h4>
+<ul>
+<li>與其他服務傳輸時的資料正規化。</li>
+<li>維護所有 已存在與準備建立/銷毀 的牌桌區塊。</li>
+<li>維護所有 已存在與準備建立/銷毀 的 Bot 執行緒。</li>
+</ul>
+<h4 id="網路單元業務">網路單元業務</h4>
+<ul>
+<li>維護與其他在 Consul 上已註冊服務溝通時的擴充功能。</li>
+<li>維護與 Redis 溝通時的擴充功能。</li>
+</ul>
+<h4 id="邏輯單元業務">邏輯單元業務</h4>
+<ul>
+<li>根據每款遊戲不同的遊戲規則有不同的處理機制。</li>
+<li>負責模擬不同玩家心態所量化成的遊戲策略方式。</li>
+<li>負責處理當遊戲複雜度高於一定難度時能夠快速解析當前局勢的演算法。</li>
+</ul>
+<hr>
+<h3 id="跨服務溝通介紹">跨服務溝通介紹</h3>
+<img src="https://imgur.com/rtSqnuy.png"
+    
+    
+    
+    
+    
+        class="center"
+    
+>
+
+<ul>
+<li>不同服務 (即遊戲伺服器與 PVE 伺服器) 之間透過 NATS 進行溝通。</li>
+<li>每款遊戲在 Packet Office 內表示為一個獨立的遊戲單元。</li>
+<li>遊戲單元與 Bot 之間透過 Channel 共享資料。</li>
+<li>接收封包時，遊戲單元與 Bot 對應關係為一對一，即每次收到的封包只會放進指定的 Bot Channel 內。</li>
+<li>發送封包時，遊戲單元與 Bot 對應關係為一對多，即相同牌桌內的 Bot Channel 是互相共享的，用以減輕遊戲單元在封裝封包時的複雜度。</li>
+</ul>
+<p>簡單來說，我們可以把 Packet Office 想成郵局，每個遊戲單元都是郵局內的其中一個窗口，當有民眾進入 (收到封包) 時，會在門口先抽取號碼牌後，等待系統引導到指定的窗口辦理業務。窗口負責人在收到業務後，會根據上面的備註進行分類，從而將包裹轉交到指定的目的地 (Bot 執行緒)。</p>
+<p>同時，上述所有在窗口處理的業務都會被寫入 Redis 進行備份，如此一來在發生不可預期的錯誤而被重啟時，能夠盡可能的牌局狀況回復到離崩潰最近的時間點，減少因為重啟時在客戶端所造成的影響。</p>
+<hr>
+<h3 id="pve-伺服器工作流程">PVE 伺服器工作流程</h3>
+<img src="https://imgur.com/tyDuGwh.png"
+    
+    
+    
+    
+    
+        class="center"
+    
+>
+
+<p>該圖為 PVE 伺服器在進行一局遊戲時的完整時序圖。</p>
+<ul>
+<li>為了降低傳輸成本，所有寫入至 Redis 的資料都只針對有被變更過的資料。</li>
+<li>所有的請求在從佇列取出後都是使用 goroutine 進行異步處理，若遇到 Bot 的連續動作時，則會在 Bot 執行緒中自行進行同步處理。若同步需求涉及兩隻以上的 Bot，則會在 Packet Office 送出請求前進行等待。</li>
+<li>在 Bot 正常結束遊戲後，會先至 Redis 刪除關於這隻 Bot 所有歷史快照後才結束執行緒。為了避免有意外發生，每隻 Bot 在 Redis 上所對應到的 Key 皆有一定的生命週期防止資料溢出或產生衝突。</li>
+</ul>
+
+        </div>
+
+        
+        
+          <div class="btn-improve-page">
+              <a href="https://github.com/JianLiu666/JianLiu666.github.io/edit/master/content/posts/experiences/2019/game-platform-pacer/index.md">
+                <i class="fas fa-code-branch"></i>
+                Improve this page
+              </a>
+          </div>
+        
+
+        
+      <hr />
+        <div class="row next-prev-navigator">
+
+
+  
+
+  
+
+  
+
+  
+    
+    
+      
+        
+        
+        <div class="col-md-12 next-article">
+          <a href="/posts/experiences/2019/game-platform-backend/" class="btn btn-outline-info">
+            <span>Next <i class="fas fa-chevron-circle-right"></i></span>
+            <br />
+            <span>棋牌遊戲開發| 遊戲伺服器篇</span>
+          </a>
+        </div>
+      
+    
+  
+
+</div>
+
+      <hr />
+      
+      
+      </div>
+    </div>
+  </div>
+  
+</section>
+
+
+      
+      
+  <section class="toc-section" id="toc-section">
+    
+    <div class="toc-holder">
+      <h5 class="text-center pl-3">Table of Contents</h5>
+      <hr>
+      <div class="toc">
+        <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#前言">前言</a></li>
+        <li><a href="#pve-伺服器系統架構圖">PVE 伺服器系統架構圖</a>
+          <ul>
+            <li><a href="#常駐服務">常駐服務</a></li>
+            <li><a href="#核心單元業務">核心單元業務</a></li>
+            <li><a href="#網路單元業務">網路單元業務</a></li>
+            <li><a href="#邏輯單元業務">邏輯單元業務</a></li>
+          </ul>
+        </li>
+        <li><a href="#跨服務溝通介紹">跨服務溝通介紹</a></li>
+        <li><a href="#pve-伺服器工作流程">PVE 伺服器工作流程</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+      </div>
+    </div>
+    
+  </section>
+
+    </div>
+
+    
+
+  
+
+
+
+
+  
+
+
+
+
+  
+  
+    
+  
+
+
+<footer class="container-fluid text-center align-content-center footer pb-2">
+  <div class="container pt-5">
+    <div class="row text-left">
+      <div class="col-md-4 col-sm-12">
+        <h5>Navigation</h5>
+        
+        <ul>
+            
+              
+              
+                
+              
+              <li class="nav-item">
+                <a class="smooth-scroll" href="#about">About</a>
+              </li>
+            
+            
+              
+              
+                
+              
+              <li class="nav-item">
+                <a class="smooth-scroll" href="#skills">Skills</a>
+              </li>
+            
+            
+              
+              
+                
+              
+              <li class="nav-item">
+                <a class="smooth-scroll" href="#experiences">Experiences</a>
+              </li>
+            
+            
+            
+              
+              
+                
+              
+              <li class="nav-item">
+                <a class="smooth-scroll" href="#recent-posts">Recent Posts</a>
+              </li>
+            
+            
+        </ul>
+        
+
+      </div>
+      
+      <div class="col-md-4 col-sm-12">
+        <h5>Contact me:</h5>
+        <ul>
+          
+          <li><span>Gmail: </span> <span>jianliou.6@gmail.com</span></li>
+          
+        </ul>
+      </div>
+      
+      
+    </div>
+  </div>
+  <hr />
+  <div class="container">
+    <div class="row text-left">
+      <div class="col-md-4">
+        <a id="theme" href="https://github.com/hossainemruz/toha" target="#">
+          <img src="/assets/images/inverted-logo.png">
+          Toha
+        </a>
+      </div>
+      <div class="col-md-4 text-center">© 2020 Copyright.</div>
+      <div class="col-md-4 text-right">
+        <a id="hugo" href="https://gohugo.io/">Powered by
+        <img
+          src="/assets/images/hugo-logo-wide.svg"
+          alt="Hugo Logo"
+          height="18"
+        />
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+    <script src="/assets/js/jquery-3.4.1.min.js"></script>
+<script src="/assets/js/popper.min.js"></script>
+<script src="/assets/js/bootstrap.min.js"></script>
+
+<script src="/assets/js/navbar.js"></script>
+<script src="/assets/js/main.js"></script>
+
+
+    
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js"></script>
+<script src="/assets/js/single.js"></script>
+<script>
+  hljs.initHighlightingOnLoad();
+</script>
+
+
+  </body>
+</html>

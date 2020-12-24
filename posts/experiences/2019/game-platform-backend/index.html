@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>棋牌遊戲開發| 遊戲伺服器篇</title>
+    <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+
+<link rel="stylesheet" href="/assets/css/bootstrap.min.css"/>
+<link rel="stylesheet" href="/assets/css/layouts/main.css"/>
+<link rel="stylesheet" href="/assets/css/style.css"/>
+<link rel="stylesheet" href="/assets/css/navigators/navbar.css"/>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Muli:wght@300;400;500;600" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" />
+
+
+<link rel="icon" type="image/png" href="/assets/images/favicon.png" />
+
+
+<link rel="stylesheet" href="/assets/css/style.css"/>
+
+    
+<meta name="description" content="本篇內容為棋牌類型為主的遊戲伺服器架構心得筆記，涉及高併發、玩家佇列與自動佈署等。" />
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css"
+/>
+<link rel="stylesheet" href="/assets/css/layouts/single.css"/>
+<link rel="stylesheet" href="/assets/css/navigators/sidebar.css">
+
+
+    
+    
+  </head>
+
+  <body data-spy="scroll" data-target="#TableOfContents" data-offset="80">
+    <div class="container-fluid bg-dimmed wrapper">
+      
+      
+    
+
+
+
+
+<nav class="navbar navbar-expand-xl top-navbar final-navbar shadow">
+  <div class="container">
+      <button class="navbar-toggler navbar-light" id="sidebar-toggler" type="button" onclick="toggleSidebar()">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <a class="navbar-brand" href="/">
+      <img src="/assets/images/main-logo.png">Jian Liu</a>
+    <button class="navbar-toggler navbar-light" id="toc-toggler" type="button" onclick="toggleTOC()">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse lang-selector" id="top-nav-items">
+      <ul class="navbar-nav ml-auto">
+      
+      </ul>
+    </div>
+  </div>
+  
+  <img src="/assets/images/main-logo.png" class="d-none" id="main-logo">
+  <img src="/assets/images/inverted-logo.png" class="d-none" id="inverted-logo">
+</nav>
+
+
+
+      
+      
+  <section class="sidebar-section" id="sidebar-section">
+    <div class="sidebar-holder">
+      <div class="sidebar" id="sidebar">
+        <input type="text" value="" placeholder="Search" data-search="" id="search-box" />
+        <div class="sidebar-tree">
+          <ul class="tree" id="tree">
+            <li id="list-heading"><a href="/posts" data-filter="all">Posts</a></li>
+            <div class="subtree">
+                
+  
+  
+  
+  
+    
+    
+  
+  
+    
+    <li>
+      <i class="fas fa-minus-circle"></i><a class="active" href="/posts/experiences/">Experiences</a>
+      
+      <ul class="active">
+        
+  
+  
+  
+  
+  
+    
+    <li>
+      <i class="fas fa-plus-circle"></i><a class="" href="/posts/experiences/2018/">2018</a>
+      
+      <ul class="">
+        
+  
+  
+  
+  
+  
+    
+    <li><a class="" href="/posts/experiences/2018/wooseven/">wooSeven 專案工作室</a></li>
+  
+
+
+      </ul>
+    </li>
+  
+
+  
+  
+  
+  
+    
+    
+  
+  
+    
+    <li>
+      <i class="fas fa-minus-circle"></i><a class="active" href="/posts/experiences/2019/">2019</a>
+      
+      <ul class="active">
+        
+  
+  
+  
+  
+  
+    
+    <li><a class="" href="/posts/experiences/2019/game-platform-frontend/">棋牌遊戲開發| 前端篇</a></li>
+  
+
+  
+  
+  
+  
+    
+    
+  
+  
+    
+    <li><a class="active" href="/posts/experiences/2019/game-platform-backend/">棋牌遊戲開發| 遊戲伺服器篇</a></li>
+  
+
+  
+  
+  
+  
+  
+    
+    <li><a class="" href="/posts/experiences/2019/game-platform-pacer/">棋牌遊戲開發| PVE伺服器篇</a></li>
+  
+
+
+      </ul>
+    </li>
+  
+
+
+      </ul>
+    </li>
+  
+
+
+            </div>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+      
+      
+<section class="content-section" id="content-section">
+  <div class="content">
+    <div class="container p-0 read-area">
+      
+      <div class="hero-area col-sm-12" id="hero-area" style='background-image: url(https://jianliu666.github.io/posts/experiences/2019/game-platform-backend/image/banner.jpeg);'>
+      </div>
+
+      
+      <div class="page-content">
+        <div class="author-profile ml-auto align-self-lg-center">
+          <img class="rounded-circle" src='/images/author/jian.jpeg'/>
+          <h5 class="author-name">Jian Liu</h5>
+          <p>January 25, 2020</p>
+        </div>
+
+        <div class="title">
+          <h1>棋牌遊戲開發| 遊戲伺服器篇</h1>
+        </div>
+
+        <div class="post-content" id="post-content">
+          <hr>
+<h3 id="前言">前言</h3>
+<p>在系列文的第一篇 <a href="./../game-platform-frontend/">棋牌遊戲開發| 前端篇</a> 中我們完整介紹了個遊戲前端的技術框架，接下來就要開始進入到後端的範疇了。</p>
+<p>由於遊戲後端涵蓋許多服務，包含玩家匹配、遊戲邏輯、PVE 系統等。本篇會先盡可能地將所有的服務都逐一提過，後續在針對其中的某些項目做進一步的介紹。</p>
+<p>另外，遊戲伺服器的僅負責所有與遊戲流程相關的業務需求；換句話說，玩家在牌桌結束後產生的對應需求 (e.g. 籌碼流動、點數轉移等)，均不在此處理。</p>
+<hr>
+<h3 id="遊戲後端技術框架結構圖">遊戲後端技術框架結構圖</h3>
+<img src="/posts/experiences/2019/game-platform-backend/image/mindmap.svg"
+    
+    
+    
+    
+    
+        class="center"
+    
+>
+
+<h4 id="資料庫選擇">資料庫選擇</h4>
+<ul>
+<li>MySQL：所有需要被永久保存的資料會在條件觸發後才進行寫入 (e.g. 牌局結算後)，減少在操作上的交換時間。</li>
+<li>Redis：儲存需要在所有內部結點上共享的資料 (e.g. 玩家、牌局資料等)，以及需要 Real-time 支持的業務需求 (e.g. 正在進行遊戲中的牌局)。</li>
+</ul>
+<h4 id="通訊方式選擇">通訊方式選擇</h4>
+<ul>
+<li>TCP：與外部服務 (e.g. Consul、NATS、API等) 採用短連接方式進行資料交換。</li>
+<li>WebSocket/MQTT：透過 WebSocket 與遊戲前端建立連線後使用 MQTT 作為通訊格式。</li>
+<li>RPC：內部結點 (e.g. GameServer、PacerServer、Gateway) 溝通時的通訊方式。</li>
+</ul>
+<h4 id="核心單元說明">核心單元說明</h4>
+<ul>
+<li>遊戲邏輯模組：能夠支援多種類型的通用遊戲開發模組 (e.g. 對弈/即時多人策略等類型)，且能因應遊戲規則細節進行擴充。</li>
+<li>機器人模組：適用於多種場合的 PVE 模組。</li>
+<li>牌桌模組：替客戶端提供幀同步與牌局主持的狀態機模組。</li>
+<li>玩家模組：將客戶端資料封裝成能夠因應不同遊戲任意擴充的彈性模組。</li>
+</ul>
+<hr>
+<h3 id="遊戲伺服器系統架構圖">遊戲伺服器系統架構圖</h3>
+<img src="https://imgur.com/W64gjHR.png"
+    
+    
+    
+    
+    
+        class="center"
+    
+>
+
+<p>整個後端系統主要分為三大區塊，每個區塊都能夠視業務需要導入自動擴容，實現負載平衡、熱更新等功能。</p>
+<ul>
+<li>Gateway：用於與客戶端建立長連接、心跳檢測與配發牌桌等功能。採用 WebSocket 與客戶端建立連線、透過 MQTT 通訊格式發送/接收訊息。</li>
+<li>Game Server：建立牌桌模組提供給玩家加入，對已存在的牌桌管理生命週期。</li>
+<li>Pacer Server：依牌桌需求建立機器人。</li>
+</ul>
+<p>每個區塊內的服務在啟動後會向 Consul 進行註冊，相同區塊內的服務透過 Redis 同步資料，不同區塊之間使用 NATS 進行遠端調用與傳遞資料。</p>
+<p>最後，所有牌桌在結束後會將牌局資料進行封裝後透過 API 轉交給專門負責交易/會員業務的系統進行處理。</p>
+<hr>
+<h3 id="遊戲伺服器工作流程">遊戲伺服器工作流程</h3>
+<img src="https://imgur.com/a8pnraP.png"
+    
+    
+    
+    
+    
+        class="center"
+    
+>
+
+<p>該圖為後端伺服器在進行一局遊戲時的時序圖，內容著重在建立牌局時與前端、內部節點溝通的過程。</p>
+<ul>
+<li>Client 與 Gateway 使用 Bearer Token 驗證。</li>
+<li>玩家在請求開始遊戲後，會進入到 Gateway 中的配對池等待配桌，匹配規則依業務需求而定。</li>
+<li>匹配過程包含建立匹配玩家清單、牌桌初始化、建立 Bot 執行緒 (視 PVP 或 PVE 而定) 與確認玩家就緒等動作。</li>
+<li>所有動作執行時都會將資料同步至 Redis 上，當系統發生未知原因導致崩潰後可以還原到當前狀態。</li>
+</ul>
+
+        </div>
+
+        
+        
+          <div class="btn-improve-page">
+              <a href="https://github.com/JianLiu666/JianLiu666.github.io/edit/master/content/posts/experiences/2019/game-platform-backend/index.md">
+                <i class="fas fa-code-branch"></i>
+                Improve this page
+              </a>
+          </div>
+        
+
+        
+      <hr />
+        <div class="row next-prev-navigator">
+
+
+  
+
+  
+
+  
+    
+      
+      <div class="col-md-6 previous-article">
+        <a href="/posts/experiences/2019/game-platform-pacer/" class="btn btn-outline-info">
+          <span><i class="fas fa-chevron-circle-left"></i> Prev</span>
+          <br />
+          <span>棋牌遊戲開發| PVE伺服器篇</span>
+        </a>
+      </div>
+      
+    
+    
+      
+        
+        
+          
+              
+          
+        
+        <div class="col-md-6 next-article">
+          <a href="/posts/experiences/2019/game-platform-frontend/" class="btn btn-outline-info">
+            <span>Next <i class="fas fa-chevron-circle-right"></i></span>
+            <br />
+            <span>棋牌遊戲開發| 前端篇</span>
+          </a>
+        </div>
+      
+    
+  
+
+  
+
+</div>
+
+      <hr />
+      
+      
+      </div>
+    </div>
+  </div>
+  
+</section>
+
+
+      
+      
+  <section class="toc-section" id="toc-section">
+    
+    <div class="toc-holder">
+      <h5 class="text-center pl-3">Table of Contents</h5>
+      <hr>
+      <div class="toc">
+        <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#前言">前言</a></li>
+        <li><a href="#遊戲後端技術框架結構圖">遊戲後端技術框架結構圖</a>
+          <ul>
+            <li><a href="#資料庫選擇">資料庫選擇</a></li>
+            <li><a href="#通訊方式選擇">通訊方式選擇</a></li>
+            <li><a href="#核心單元說明">核心單元說明</a></li>
+          </ul>
+        </li>
+        <li><a href="#遊戲伺服器系統架構圖">遊戲伺服器系統架構圖</a></li>
+        <li><a href="#遊戲伺服器工作流程">遊戲伺服器工作流程</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+      </div>
+    </div>
+    
+  </section>
+
+    </div>
+
+    
+
+  
+
+
+
+
+  
+
+
+
+
+  
+  
+    
+  
+
+
+<footer class="container-fluid text-center align-content-center footer pb-2">
+  <div class="container pt-5">
+    <div class="row text-left">
+      <div class="col-md-4 col-sm-12">
+        <h5>Navigation</h5>
+        
+        <ul>
+            
+              
+              
+                
+              
+              <li class="nav-item">
+                <a class="smooth-scroll" href="#about">About</a>
+              </li>
+            
+            
+              
+              
+                
+              
+              <li class="nav-item">
+                <a class="smooth-scroll" href="#skills">Skills</a>
+              </li>
+            
+            
+              
+              
+                
+              
+              <li class="nav-item">
+                <a class="smooth-scroll" href="#experiences">Experiences</a>
+              </li>
+            
+            
+            
+              
+              
+                
+              
+              <li class="nav-item">
+                <a class="smooth-scroll" href="#recent-posts">Recent Posts</a>
+              </li>
+            
+            
+        </ul>
+        
+
+      </div>
+      
+      <div class="col-md-4 col-sm-12">
+        <h5>Contact me:</h5>
+        <ul>
+          
+          <li><span>Gmail: </span> <span>jianliou.6@gmail.com</span></li>
+          
+        </ul>
+      </div>
+      
+      
+    </div>
+  </div>
+  <hr />
+  <div class="container">
+    <div class="row text-left">
+      <div class="col-md-4">
+        <a id="theme" href="https://github.com/hossainemruz/toha" target="#">
+          <img src="/assets/images/inverted-logo.png">
+          Toha
+        </a>
+      </div>
+      <div class="col-md-4 text-center">© 2020 Copyright.</div>
+      <div class="col-md-4 text-right">
+        <a id="hugo" href="https://gohugo.io/">Powered by
+        <img
+          src="/assets/images/hugo-logo-wide.svg"
+          alt="Hugo Logo"
+          height="18"
+        />
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+    <script src="/assets/js/jquery-3.4.1.min.js"></script>
+<script src="/assets/js/popper.min.js"></script>
+<script src="/assets/js/bootstrap.min.js"></script>
+
+<script src="/assets/js/navbar.js"></script>
+<script src="/assets/js/main.js"></script>
+
+
+    
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js"></script>
+<script src="/assets/js/single.js"></script>
+<script>
+  hljs.initHighlightingOnLoad();
+</script>
+
+
+  </body>
+</html>
